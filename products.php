@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop | Sudara Furniture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .page-header {
+            padding: 8rem 0 4rem;
+            text-align: center;
+            background-color: var(--clr-bg);
+            border-bottom: 1px solid var(--clr-border);
+        }
+
+        .filter-bar {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--clr-border);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: var(--font-body);
+            transition: var(--transition);
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--clr-primary);
+            color: #fff;
+            border-color: var(--clr-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.php" class="nav-brand">Sudara <span>Furniture</span></a>
+            <div class="nav-links">
+                <a href="index.php">Home</a>
+                <a href="products.php" class="active">Shop</a>
+                <a href="index.php#categories">Collections</a>
+            </div>
+            <div class="nav-icons">
+                <a href="login.php" class="nav-icon" id="user-icon"><i class="far fa-user"></i></a>
+                <a href="cart.php" class="nav-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cart-count">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1 class="section-title">Our Collections</h1>
+            <p class="section-subtitle">Browse through our curated selection of premium furniture for every room.</p>
+        </div>
+    </header>
+
+    <section class="section pt-0">
+        <div class="container">
+            <div class="filter-bar" id="category-filters">
+                <button class="filter-btn active" data-id="0">All Products</button>
+                <!-- Categories injected here -->
+            </div>
+
+            <div class="products-grid" id="products-grid">
+                <!-- Products injected here -->
+                <div class="product-card">
+                    <div class="product-img-wrapper">
+                        <div class="product-img" style="background-color: #f5f0ea;"></div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-title">Loading...</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialCategoryId = urlParams.get('category') || 0;
+
+            // Load Categories for filters
+            fetch('api/products.php?action=categories')
+                .then(res => res.json())
+                .then(categories => {
+                    const filterBar = document.getElementById('category-filters');
+
+                    categories.forEach(cat => {
+                        const btn = document.createElement('button');
+                        btn.className = `filter-btn ${cat.id == initialCategoryId ? 'active' : ''}`;
+                        btn.dataset.id = cat.id;
+                        btn.textContent = cat.name;
+                        filterBar.appendChild(btn);
+                    });
+
+                    // Set initial active state correctly if url param exists
+                    if (initialCategoryId != 0) {
+                        document.querySelector('.filter-btn[data-id="0"]').classList.remove('active');
+                    }
+
+                    // Add click listeners
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                            e.target.classList.add('active');
+                            loadProducts(e.target.dataset.id);
+                        });
+                    });
+                });
+
+            // Load Products
+            function loadProducts(categoryId = 0) {
+                const grid = document.getElementById('products-grid');
+                grid.innerHTML = '<p>Loading products...</p>';
+
+                let url = 'api/products.php?action=list';
+                if (categoryId > 0) {
+                    url += `&category_id=${categoryId}`;
+                }
+
+                fetch(url)
+                    .then(res => res.json())
+                    .then(products => {
+                        if (products && products.length > 0) {
+                            grid.innerHTML = products.map(p => `
+                                <div class="product-card">
+                                    <div class="product-img-wrapper" style="cursor:pointer;" onclick="window.location.href='product.php?id=${p.id}'">
+                                        <div class="product-img" style="background-image: url('${p.image_url}'); background-size: cover; background-position: center; background-color: #f5f0ea;"></div>
+                                        <div class="product-action" onclick="event.stopPropagation()">
+                                            <button class="btn btn-primary" style="width: 100%;" onclick="addToCart(${p.id})">Add to Cart</button>
+                                        </div>
+                                    </div>
+                                    <div class="product-info">
+                                        <div class="product-category">${p.category_name || 'Furniture'}</div>
+                                        <h3 class="product-title">${p.name}</h3>
+                                        <div class="product-price">$${p.price}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 2rem;">No products found in this category.</p>';
+                        }
+                    });
+            }
+
+            // Initial load
+            loadProducts(initialCategoryId);
+        });
+    </script>
+</body>
+
+</html>
