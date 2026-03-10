@@ -1,1 +1,0 @@
-# sudara_furniture
